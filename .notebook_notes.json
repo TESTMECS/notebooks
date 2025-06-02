@@ -1,0 +1,29 @@
+{
+  "Causal_Attention": [
+    {
+      "id": "5ae75618",
+      "content": "Amazing work on reversible attention mechanisms!",
+      "category": "general",
+      "created": "2025-05-31T02:32:44.004123",
+      "modified": "2025-05-31T02:32:44.004124"
+    }
+  ],
+  "ConstructorTheory": [
+    {
+      "id": "5a28995f",
+      "content": "Fascinating approach to world models for LLMs",
+      "category": "general",
+      "created": "2025-05-31T02:32:52.460194",
+      "modified": "2025-05-31T02:32:52.460195"
+    }
+  ],
+  "Spacetime+Lorentz": [
+    {
+      "id": "7d310101",
+      "content": "Great visualization of hierarchical embeddings",
+      "category": "general",
+      "created": "2025-05-31T02:32:52.496778",
+      "modified": "2025-05-31T02:32:52.496779"
+    }
+  ]
+}
