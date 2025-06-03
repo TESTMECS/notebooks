@@ -995,4 +995,5 @@ for batch in test_loader:
 
 print(f"Test Accuracy on Causal Graphs: {correct / total:.4f}")
 
+
 # %%
