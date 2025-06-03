@@ -5,8 +5,8 @@
 # We can shift and move the latent space to get better results.
 # We define those ideas that are "Spacelike" those that are not in the same future.
 # We can mask the 'spacelike ideas' to get better results.
+# === Simply Run this with `python bendingattention.py` !! ===
 # %%
-
 import torch
 import math
 import random
@@ -14,7 +14,9 @@ import numpy as np
 import pandas as pd
 import matplotlib
 
-matplotlib.use("Agg")  # Use non-interactive backend for headless operation
+matplotlib.use(
+    "Agg"
+)  # Use non-interactive backend for headless operation
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
@@ -25,6 +27,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
+import os
 
 # %%
 console = Console()
@@ -33,6 +36,10 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
+
+# Output directory configuration
+OUTPUT_DIR = "attention/outputs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Beautiful device info
 device_color = "green" if DEVICE == "cuda" else "yellow"
@@ -129,12 +136,20 @@ def make_hook(layer_idx):
         for head in range(h):
             for tgt in range(L):
                 # take top‑k src by weight > 0.01
-                top_src = torch.nonzero(w[0, head, tgt] > 0.01).flatten().tolist()
+                top_src = (
+                    torch.nonzero(w[0, head, tgt] > 0.01)
+                    .flatten()
+                    .tolist()
+                )
                 for src in top_src:
                     eid = f"ev_{len(ATTN_EVENTS)}"
-                    ATTN_EVENTS.append(
-                        (eid, tgt, head, time_ctr[0], f"L{layer_idx}/H{head}")
-                    )
+                    ATTN_EVENTS.append((
+                        eid,
+                        tgt,
+                        head,
+                        time_ctr[0],
+                        f"L{layer_idx}/H{head}",
+                    ))
                     time_ctr[0] += 1
 
     return hook
@@ -150,14 +165,18 @@ _ = model(**inputs)  # just run once to get events
 for h in hooks:
     h.remove()
 
-console.print(f"✅ Logged [bold green]{len(ATTN_EVENTS)}[/bold green] attention events")
+console.print(
+    f"✅ Logged [bold green]{len(ATTN_EVENTS)}[/bold green] attention events"
+)
 
 # %% [markdown]
 """
 # 4  Compute Minkowski Intervals + Entropy Cost
 """
 # %%
-console.print("\n[bold cyan]⚛️  Computing Minkowski Spacetime Analysis[/bold cyan]")
+console.print(
+    "\n[bold cyan]⚛️  Computing Minkowski Spacetime Analysis[/bold cyan]"
+)
 
 
 def classify_intervals(events):
@@ -175,16 +194,25 @@ def classify_intervals(events):
             else:
                 rel = "spacelike"
             cost = math.sqrt(-ds2) if rel == "timelike" else 0
-            rec.append({"from": e1[0], "to": e2[0], "relation": rel, "cost": cost})
+            rec.append({
+                "from": e1[0],
+                "to": e2[0],
+                "relation": rel,
+                "cost": cost,
+            })
     return pd.DataFrame(rec)
 
 
 interval_df = classify_intervals(ATTN_EVENTS)
-timelike_cost = interval_df.query("relation=='timelike'")["cost"].sum()
+timelike_cost = interval_df.query("relation=='timelike'")[
+    "cost"
+].sum()
 
 # Create a beautiful summary table
 spacetime_table = Table(title="🌌 Spacetime Interval Analysis")
-spacetime_table.add_column("Relation Type", style="cyan", no_wrap=True)
+spacetime_table.add_column(
+    "Relation Type", style="cyan", no_wrap=True
+)
 spacetime_table.add_column("Count", style="magenta")
 spacetime_table.add_column("Total Cost", style="green")
 
@@ -202,17 +230,23 @@ console.print(spacetime_table)
 # 5  Identify & Mask Entropy‑Heavy Heads
 """
 # %%
-console.print("\n[bold cyan]🎯 Identifying Entropy-Heavy Heads[/bold cyan]")
+console.print(
+    "\n[bold cyan]🎯 Identifying Entropy-Heavy Heads[/bold cyan]"
+)
 
 head_entropy = defaultdict(float)
 for _, row in interval_df.iterrows():
     if row["relation"] == "timelike":
         src_id = row["from"]
-        token_pos, head_idx = next((x[1], x[2]) for x in ATTN_EVENTS if x[0] == src_id)
+        token_pos, head_idx = next(
+            (x[1], x[2]) for x in ATTN_EVENTS if x[0] == src_id
+        )
         head_entropy[(token_pos, head_idx)] += row["cost"]
 
 # pick top‑5
-top5 = sorted(head_entropy.items(), key=lambda x: x[1], reverse=True)[:5]
+top5 = sorted(head_entropy.items(), key=lambda x: x[1], reverse=True)[
+    :5
+]
 masked_heads = defaultdict(set)
 for (tok_pos, h), _ in top5:
     masked_heads[tok_pos].add(h)
@@ -225,7 +259,9 @@ entropy_table.add_column("Head Index", style="yellow")
 entropy_table.add_column("Entropy Cost", style="red")
 
 for i, ((tok_pos, head_idx), cost) in enumerate(top5, 1):
-    entropy_table.add_row(str(i), str(tok_pos), str(head_idx), f"{cost:.4f}")
+    entropy_table.add_row(
+        str(i), str(tok_pos), str(head_idx), f"{cost:.4f}"
+    )
 
 console.print(entropy_table)
 
@@ -242,7 +278,9 @@ console.print(mask_summary)
 # 6  Rerun Forward Pass with Mask & Measure Perplexity
 """
 # %%
-console.print("\n[bold cyan]🧪 Testing Masked Forward Pass[/bold cyan]")
+console.print(
+    "\n[bold cyan]🧪 Testing Masked Forward Pass[/bold cyan]"
+)
 
 
 @torch.no_grad()
@@ -262,7 +300,9 @@ def forward_with_mask(mdl, text, mask_dict):
         return hk
 
     for i, blk in enumerate(mdl.transformer.h):
-        m_hooks.append(blk.attn.register_forward_hook(mk_mask_hook(i)))
+        m_hooks.append(
+            blk.attn.register_forward_hook(mk_mask_hook(i))
+        )
     out = mdl(**inputs, labels=inputs["input_ids"])
     for h in m_hooks:
         h.remove()
@@ -274,7 +314,9 @@ masked_ppl = dataset_perplexity(SENTS, mdl=model)
 # Create results comparison table
 results_table = Table(title="📊 Perplexity Comparison Results")
 results_table.add_column("Method", style="cyan", no_wrap=True)
-results_table.add_column("Perplexity", style="magenta", justify="right")
+results_table.add_column(
+    "Perplexity", style="magenta", justify="right"
+)
 results_table.add_column("Change", style="green", justify="right")
 
 ppl_change = ((masked_ppl - baseline_ppl) / baseline_ppl) * 100
@@ -302,29 +344,50 @@ def viz(events, title):
     df = classify_intervals(events)
     fig = plt.figure(figsize=(9, 5))
     ax = fig.add_subplot(111, projection="3d")
-    colors = {"null": "green", "timelike": "orange", "spacelike": "gray"}
+    colors = {
+        "null": "green",
+        "timelike": "orange",
+        "spacelike": "gray",
+    }
     coords = {e[0]: (e[1], e[2], e[3]) for e in events}
     for _, r in df.iterrows():
         if r.relation == "null":
             continue  # simplify view
         x1, y1, z1 = coords[r["from"]]
         x2, y2, z2 = coords[r["to"]]
-        ax.plot([x1, x2], [y1, y2], [z1, z2], color=colors[r.relation], alpha=0.5)
+        ax.plot(
+            [x1, x2],
+            [y1, y2],
+            [z1, z2],
+            color=colors[r.relation],
+            alpha=0.5,
+        )
     for eid, x, y, z, _ in events:
         ax.scatter(x, y, z, color="black")
     ax.set_xlabel("token")
     ax.set_ylabel("head")
 
-    # Handle zlabel safely - simple approach
-    try:
-        ax.set_zlabel("layer/time")
-    except (AttributeError, TypeError):
-        pass
+    # Handle 3D axis labels with better compatibility
+    if hasattr(ax, "set_zlabel"):
+        ax.set_zlabel("layer/time")  # type: ignore
+    else:
+        # Fallback for systems without proper 3D support
+        ax.text2D(
+            0.02,
+            0.95,
+            "Z: layer/time",
+            transform=ax.transAxes,
+            fontsize=10,
+        )
 
     plt.title(title)
     plt.tight_layout()
     plt.savefig(
-        f"./outputs/{title.lower().replace(' ', '_')}.png", dpi=150, bbox_inches="tight"
+        os.path.join(
+            OUTPUT_DIR, f"{title.lower().replace(' ', '_')}.png"
+        ),
+        dpi=150,
+        bbox_inches="tight",
     )
     plt.close()  # Close figure to prevent memory leaks
 
@@ -344,14 +407,25 @@ for i, blk in enumerate(model.transformer.h):
             b, h, L, _ = attn.shape
             for head in range(h):
                 for tgt in range(L):
-                    if tgt in masked_heads and head in masked_heads[tgt]:
+                    if (
+                        tgt in masked_heads
+                        and head in masked_heads[tgt]
+                    ):
                         continue
-                    srcs = torch.nonzero(attn[0, head, tgt] > 0.01).flatten().tolist()
+                    srcs = (
+                        torch.nonzero(attn[0, head, tgt] > 0.01)
+                        .flatten()
+                        .tolist()
+                    )
                     for src in srcs:
                         eid = f"mask_ev_{len(ATTN_EVENTS_MASKED)}"
-                        ATTN_EVENTS_MASKED.append(
-                            (eid, tgt, head, time_ctr[0], f"L{layer_idx}/H{head}")
-                        )
+                        ATTN_EVENTS_MASKED.append((
+                            eid,
+                            tgt,
+                            head,
+                            time_ctr[0],
+                            f"L{layer_idx}/H{head}",
+                        ))
                         time_ctr[0] += 1
 
         return hk
@@ -385,28 +459,38 @@ with Progress(
     TextColumn("[progress.description]{task.description}"),
     console=console,
 ) as progress:
-    task = progress.add_task("Loading WikiText-2 dataset...", total=None)
-    wikitext = load_dataset("wikitext", "wikitext-2-raw-v1", split="validation[:1000]")
+    task = progress.add_task(
+        "Loading WikiText-2 dataset...", total=None
+    )
+    wikitext = load_dataset(
+        "wikitext", "wikitext-2-raw-v1", split="validation[:1000]"
+    )
     VAL_TEXT = "\n".join(wikitext["text"])
     progress.update(task, description="✅ Dataset loaded!")
 
 
 @torch.no_grad()
 def perplexity_on_long_text(text, mdl):
-    inputs = tok(text, return_tensors="pt", truncation=True, max_length=1024)
+    inputs = tok(
+        text, return_tensors="pt", truncation=True, max_length=1024
+    )
     inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
     out = mdl(**inputs, labels=inputs["input_ids"])
     return math.exp(out.loss.item())
 
 
 ppl_baseline = perplexity_on_long_text(VAL_TEXT, model)
-console.print(f"📈 WikiText-2 baseline: [bold white]{ppl_baseline:.3f}[/bold white]")
+console.print(
+    f"📈 WikiText-2 baseline: [bold white]{ppl_baseline:.3f}[/bold white]"
+)
 
 
 # 8.1  Masked‑head inference wrapper (same as Section 6)
 @torch.no_grad()
 def model_with_entropy_mask(text, mdl, mask_dict):
-    inputs = tok(text, return_tensors="pt", truncation=True, max_length=1024)
+    inputs = tok(
+        text, return_tensors="pt", truncation=True, max_length=1024
+    )
     inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
     m_hooks = []
 
@@ -421,7 +505,9 @@ def model_with_entropy_mask(text, mdl, mask_dict):
         return hk
 
     for i, blk in enumerate(mdl.transformer.h):
-        m_hooks.append(blk.attn.register_forward_hook(mk_mask_hook(i)))
+        m_hooks.append(
+            blk.attn.register_forward_hook(mk_mask_hook(i))
+        )
     out = mdl(**inputs, labels=inputs["input_ids"])
     for h in m_hooks:
         h.remove()
@@ -434,15 +520,21 @@ ppl_mask = model_with_entropy_mask(VAL_TEXT, model, masked_heads)
 rand_mask = defaultdict(set)
 for tok_pos in masked_heads:
     while len(rand_mask[tok_pos]) < len(masked_heads[tok_pos]):
-        rand_mask[tok_pos].add(random.randint(0, model.config.n_head - 1))
+        rand_mask[tok_pos].add(
+            random.randint(0, model.config.n_head - 1)
+        )
 
 ppl_random = model_with_entropy_mask(VAL_TEXT, model, rand_mask)
 
 # Create comprehensive WikiText-2 results table
 wikitext_table = Table(title="🏆 WikiText-2 Performance Comparison")
 wikitext_table.add_column("Method", style="cyan", no_wrap=True)
-wikitext_table.add_column("Perplexity", style="magenta", justify="right")
-wikitext_table.add_column("vs Baseline", style="green", justify="right")
+wikitext_table.add_column(
+    "Perplexity", style="magenta", justify="right"
+)
+wikitext_table.add_column(
+    "vs Baseline", style="green", justify="right"
+)
 wikitext_table.add_column("Status", style="yellow", justify="center")
 
 
@@ -467,7 +559,9 @@ def get_status(change_pct):
 entropy_change = ((ppl_mask - ppl_baseline) / ppl_baseline) * 100
 random_change = ((ppl_random - ppl_baseline) / ppl_baseline) * 100
 
-wikitext_table.add_row("Baseline", f"{ppl_baseline:.3f}", "—", "📊 Reference")
+wikitext_table.add_row(
+    "Baseline", f"{ppl_baseline:.3f}", "—", "📊 Reference"
+)
 wikitext_table.add_row(
     "Entropy Mask",
     f"{ppl_mask:.3f}",
@@ -486,12 +580,16 @@ console.print(wikitext_table)
 # %% [markdown]
 # 9  Compare Against Traditional Magnitude‑Pruning ⚖️
 # %%
-console.print("\n[bold cyan]⚖️  Magnitude Pruning Comparison[/bold cyan]")
+console.print(
+    "\n[bold cyan]⚖️  Magnitude Pruning Comparison[/bold cyan]"
+)
 
 head_norm = torch.zeros(model.config.n_head)
 with torch.no_grad():
     for name, p in model.named_parameters():
-        if "attn.c_attn.weight" in name:  # QKV projection combined matrix
+        if (
+            "attn.c_attn.weight" in name
+        ):  # QKV projection combined matrix
             # Split into (q,k,v) and heads
             w = p.view(model.config.n_head, -1)
             head_norm += w.norm(p=2, dim=1).cpu()
@@ -514,10 +612,15 @@ for i, tok_pos in enumerate(tok_positions):
             traditional_mask[tok_pos].add(lowest_norm_indices[idx])
             idx += 1
 
-ppl_magnitude = model_with_entropy_mask(VAL_TEXT, model, traditional_mask)
+ppl_magnitude = model_with_entropy_mask(
+    VAL_TEXT, model, traditional_mask
+)
 
 # Create final comprehensive comparison table
-final_table = Table(title="🏁 Final Performance Comparison", title_style="bold magenta")
+final_table = Table(
+    title="🏁 Final Performance Comparison",
+    title_style="bold magenta",
+)
 final_table.add_column("Method", style="cyan", no_wrap=True)
 final_table.add_column("Approach", style="white", no_wrap=True)
 final_table.add_column("Perplexity", style="magenta", justify="right")
@@ -554,8 +657,12 @@ for i, (method, approach, ppl) in enumerate(methods_with_rank):
 console.print(final_table)
 
 # Add conclusion panel
-magnitude_change = ((ppl_magnitude - ppl_baseline) / ppl_baseline) * 100
-best_method = min([(name, ppl) for name, _, ppl in methods[1:]], key=lambda x: x[1])
+magnitude_change = (
+    (ppl_magnitude - ppl_baseline) / ppl_baseline
+) * 100
+best_method = min(
+    [(name, ppl) for name, _, ppl in methods[1:]], key=lambda x: x[1]
+)
 
 conclusion_text = f"""
 🎯 [bold]Key Findings:[/bold]
@@ -576,8 +683,10 @@ console.print(
 )
 
 
+# %% [markdown]
+# Project attention events onto a single circular ring
+# in 3D Minkowski space
 # %%
-# title Project all attention events onto a single circular ring in 3D Minkowski space
 def circular_embed(events, radius=1.0):
     N = len(events)
     circular_events = []
@@ -620,15 +729,13 @@ def classify_intervals_enhanced(events, null_threshold=1e-3):
             else:
                 relation = "spacelike"
                 cost = 0.0
-            rows.append(
-                {
-                    "from": e1[0],
-                    "to": e2[0],
-                    "Δs²": s2,
-                    "relation": relation,
-                    "cost": cost,
-                }
-            )
+            rows.append({
+                "from": e1[0],
+                "to": e2[0],
+                "Δs²": s2,
+                "relation": relation,
+                "cost": cost,
+            })
     return pd.DataFrame(rows)
 
 
@@ -648,7 +755,11 @@ def visualize_metric_space(events, df_costs):
         if e1 and e2:
             xs, ys, zs = zip(e1, e2)
             ax.plot(
-                xs, ys, zs, color=color_map.get(row["relation"], "black"), alpha=0.6
+                xs,
+                ys,
+                zs,
+                color=color_map.get(row["relation"], "black"),
+                alpha=0.6,
             )
 
     for eid, x, y, z, label in events:
@@ -658,15 +769,22 @@ def visualize_metric_space(events, df_costs):
     ax.set_xlabel("x (circular)")
     ax.set_ylabel("y (circular)")
 
-    # Handle zlabel safely - simple approach
-    try:
-        ax.set_zlabel("time")
-    except (AttributeError, TypeError):
-        pass
+    # Handle 3D axis labels with better compatibility
+    if hasattr(ax, "set_zlabel"):
+        ax.set_zlabel("time")  # type: ignore
+    else:
+        # Fallback for systems without proper 3D support
+        ax.text2D(
+            0.02, 0.95, "Z: time", transform=ax.transAxes, fontsize=10
+        )  # type: ignore
 
     plt.title("Circular Causal Graph")
     plt.tight_layout()
-    plt.savefig("./outputs/circular_causal_graph.png", dpi=150, bbox_inches="tight")
+    plt.savefig(
+        os.path.join(OUTPUT_DIR, "circular_causal_graph.png"),
+        dpi=150,
+        bbox_inches="tight",
+    )
     plt.close()  # Close figure to prevent memory leaks
 
 
@@ -684,7 +802,9 @@ visualize_metric_space(circular_events, circular_df)
 masked_circular_events = circular_embed(ATTN_EVENTS_MASKED)
 
 # Calculate intervals and costs for masked circular embedding
-masked_circular_df = classify_intervals_enhanced(masked_circular_events)
+masked_circular_df = classify_intervals_enhanced(
+    masked_circular_events
+)
 
 # Visualize the masked circular metric space
 visualize_metric_space(masked_circular_events, masked_circular_df)
@@ -696,23 +816,38 @@ console.print("\n[bold cyan]💾 Saving Data to CSV Files[/bold cyan]")
 # Convert ATTN_EVENTS_MASKED to DataFrame
 masked_events_df = pd.DataFrame(
     ATTN_EVENTS_MASKED,
-    columns=["event_id", "token_pos", "head_idx", "time_idx", "label"],
+    columns=[
+        "event_id",
+        "token_pos",
+        "head_idx",
+        "time_idx",
+        "label",
+    ],
 )
 
 # Save to CSV
-masked_events_df.to_csv("./outputs/masked_attention_events.csv", index=False)
+masked_events_df.to_csv(
+    os.path.join(OUTPUT_DIR, "masked_attention_events.csv"),
+    index=False,
+)
 console.print(
     "✅ Saved ATTN_EVENTS_MASKED to [bold green]masked_attention_events.csv[/bold green]"
 )
 
 # Also save the circular analysis results
-circular_df.to_csv("./outputs/circular_intervals_analysis.csv", index=False)
+circular_df.to_csv(
+    os.path.join(OUTPUT_DIR, "circular_intervals_analysis.csv"),
+    index=False,
+)
 console.print(
     "✅ Saved circular analysis to [bold green]circular_intervals_analysis.csv[/bold green]"
 )
 
 masked_circular_df.to_csv(
-    "./outputs/masked_circular_intervals_analysis.csv", index=False
+    os.path.join(
+        OUTPUT_DIR, "masked_circular_intervals_analysis.csv"
+    ),
+    index=False,
 )
 console.print(
     "✅ Saved masked circular analysis to [bold green]masked_circular_intervals_analysis.csv[/bold green]"
@@ -725,17 +860,19 @@ file_summary.add_column("Description", style="white")
 file_summary.add_column("Records", style="magenta", justify="right")
 
 file_summary.add_row(
-    "./outputs/masked_attention_events.csv",
+    os.path.join(OUTPUT_DIR, "masked_attention_events.csv"),
     "Masked attention events",
     str(len(masked_events_df)),
 )
 file_summary.add_row(
-    "./outputs/circular_intervals_analysis.csv",
+    os.path.join(OUTPUT_DIR, "circular_intervals_analysis.csv"),
     "Circular spacetime intervals",
     str(len(circular_df)),
 )
 file_summary.add_row(
-    "./outputs/masked_circular_intervals_analysis.csv",
+    os.path.join(
+        OUTPUT_DIR, "masked_circular_intervals_analysis.csv"
+    ),
     "Masked circular intervals",
     str(len(masked_circular_df)),
 )
@@ -784,7 +921,9 @@ def animate_circular_flow(events):
         # Update lines between consecutive points
         for i in range(min(frame, len(lines))):
             if i < len(xs) - 1:
-                lines[i].set_data([xs[i], xs[i + 1]], [ys[i], ys[i + 1]])
+                lines[i].set_data(
+                    [xs[i], xs[i + 1]], [ys[i], ys[i + 1]]
+                )
                 lines[i].set_3d_properties([zs[i], zs[i + 1]])
         return [scat] + lines
 
@@ -792,20 +931,21 @@ def animate_circular_flow(events):
     ax.set_xlim((-1.2, 1.2))
     ax.set_ylim((-1.2, 1.2))
 
-    # Handle 3D axis methods safely - simple approach
-    try:
-        ax.set_zlim((0, max(zs) if zs else 1))
-    except (AttributeError, TypeError):
-        pass
+    # Handle 3D axis methods with better compatibility
+    if hasattr(ax, "set_zlim"):
+        ax.set_zlim((0, max(zs) if zs else 1))  # type: ignore
 
     ax.set_xlabel("x (circle)")
     ax.set_ylabel("y (circle)")
 
-    # Handle zlabel safely - simple approach
-    try:
-        ax.set_zlabel("time")
-    except (AttributeError, TypeError):
-        pass
+    # Handle 3D axis labels with better compatibility
+    if hasattr(ax, "set_zlabel"):
+        ax.set_zlabel("time")  # type: ignore
+    else:
+        # Fallback for systems without proper 3D support
+        ax.text2D(
+            0.02, 0.95, "Z: time", transform=ax.transAxes, fontsize=10
+        )
 
     ax.set_title("Helical Causal Flow (Circular Embedding)")
 
@@ -823,20 +963,33 @@ def animate_circular_flow(events):
 
 # %%
 # Create the animation and save as GIF
-console.print("\n[bold cyan]🎬 Creating Circular Flow Animation[/bold cyan]")
+console.print(
+    "\n[bold cyan]🎬 Creating Circular Flow Animation[/bold cyan]"
+)
 
 # First, save the ATTN_EVENTS_MASKED to CSV
-console.print("\n[bold cyan]💾 Saving Attention Events Data[/bold cyan]")
+console.print(
+    "\n[bold cyan]💾 Saving Attention Events Data[/bold cyan]"
+)
 
 if len(ATTN_EVENTS_MASKED) > 0:
     # Convert ATTN_EVENTS_MASKED to DataFrame
     masked_events_df = pd.DataFrame(
         ATTN_EVENTS_MASKED,
-        columns=["event_id", "token_pos", "head_idx", "time_idx", "label"],
+        columns=[
+            "event_id",
+            "token_pos",
+            "head_idx",
+            "time_idx",
+            "label",
+        ],
     )
 
     # Save to CSV
-    masked_events_df.to_csv("masked_attention_events.csv", index=False)
+    masked_events_df.to_csv(
+        os.path.join(OUTPUT_DIR, "masked_attention_events.csv"),
+        index=False,
+    )
     console.print(
         "✅ Saved ATTN_EVENTS_MASKED to [bold green]masked_attention_events.csv[/bold green]"
     )
@@ -858,18 +1011,31 @@ if len(ATTN_EVENTS_MASKED) > 0:
                 from matplotlib.animation import PillowWriter
 
                 writer = PillowWriter(fps=8)
-                ani.save("helix_flow.gif", writer=writer)
+                ani.save(
+                    os.path.join(OUTPUT_DIR, "helix_flow.gif"),
+                    writer=writer,
+                )
                 console.print(
                     "✅ Saved animation to [bold green]helix_flow.gif[/bold green]"
                 )
             except Exception as save_error:
                 # Fallback: try with default writer
-                console.print(f"⚠️  Pillow writer failed: {save_error}")
+                console.print(
+                    f"⚠️  Pillow writer failed: {save_error}"
+                )
                 console.print("🔄 Trying fallback method...")
-                ani.save("helix_flow.gif", writer="pillow", fps=8)
-                console.print("✅ Saved animation with fallback method")
+                ani.save(
+                    os.path.join(OUTPUT_DIR, "helix_flow.gif"),
+                    writer="pillow",
+                    fps=8,
+                )
+                console.print(
+                    "✅ Saved animation with fallback method"
+                )
 
-            console.print(f"🎬 Animated {len(circular_events)} circular events")
+            console.print(
+                f"🎬 Animated {len(circular_events)} circular events"
+            )
 
             # Show a summary table of the saved files
             from rich.table import Table
@@ -877,23 +1043,31 @@ if len(ATTN_EVENTS_MASKED) > 0:
             files_table = Table(title="📁 Generated Files Summary")
             files_table.add_column("File", style="cyan")
             files_table.add_column("Type", style="magenta")
-            files_table.add_column("Size", style="green", justify="right")
+            files_table.add_column(
+                "Size", style="green", justify="right"
+            )
 
             files_table.add_row(
-                "./outputs/masked_attention_events.csv",
+                os.path.join(
+                    OUTPUT_DIR, "masked_attention_events.csv"
+                ),
                 "Data",
                 f"{len(masked_events_df)} events",
             )
             files_table.add_row(
-                "./outputs/helix_flow.gif",
+                os.path.join(OUTPUT_DIR, "helix_flow.gif"),
                 "Animation",
                 f"{len(circular_events)} frames",
             )
             files_table.add_row(
-                "./outputs/original_causal_graph.png", "Plot", "Static visualization"
+                os.path.join(OUTPUT_DIR, "original_causal_graph.png"),
+                "Plot",
+                "Static visualization",
             )
             files_table.add_row(
-                "./outputs/masked_causal_graph.png", "Plot", "Masked visualization"
+                os.path.join(OUTPUT_DIR, "masked_causal_graph.png"),
+                "Plot",
+                "Masked visualization",
             )
 
             console.print(files_table)
@@ -906,10 +1080,14 @@ if len(ATTN_EVENTS_MASKED) > 0:
     except Exception as e:
         console.print(f"❌ Animation failed: {str(e)}")
         # Still save the CSV even if animation fails
-        console.print("📊 CSV file saved successfully despite animation error")
+        console.print(
+            "📊 CSV file saved successfully despite animation error"
+        )
         import traceback
 
-        console.print(f"[dim]Debug info: {traceback.format_exc()[:200]}...[/dim]")
+        console.print(
+            f"[dim]Debug info: {traceback.format_exc()[:200]}...[/dim]"
+        )
 else:
     console.print("❌ No masked attention events found")
 
@@ -935,15 +1113,13 @@ def classify_intervals_enhanced(events, null_threshold=1e-3):
             else:
                 relation = "spacelike"
                 cost = 0.0
-            rows.append(
-                {
-                    "from": e1[0],
-                    "to": e2[0],
-                    "Δs²": s2,
-                    "relation": relation,
-                    "cost": cost,
-                }
-            )
+            rows.append({
+                "from": e1[0],
+                "to": e2[0],
+                "Δs²": s2,
+                "relation": relation,
+                "cost": cost,
+            })
     return pd.DataFrame(rows)
 
 
@@ -964,7 +1140,11 @@ def visualize_trefoil_space(events, df_costs):
         if e1 and e2:
             xs, ys, zs = zip(e1, e2)
             ax.plot(
-                xs, ys, zs, color=color_map.get(row["relation"], "black"), alpha=0.6
+                xs,
+                ys,
+                zs,
+                color=color_map.get(row["relation"], "black"),
+                alpha=0.6,
             )
 
     # Plot points (fixed scatter parameter issue)
@@ -975,15 +1155,22 @@ def visualize_trefoil_space(events, df_costs):
     ax.set_xlabel("x (trefoil)")
     ax.set_ylabel("y (trefoil)")
 
-    # Handle zlabel safely - simple approach
-    try:
-        ax.set_zlabel("time")
-    except (AttributeError, TypeError):
-        pass
+    # Handle 3D axis labels with better compatibility
+    if hasattr(ax, "set_zlabel"):
+        ax.set_zlabel("time")  # type: ignore
+    else:
+        # Fallback for systems without proper 3D support
+        ax.text2D(
+            0.02, 0.95, "Z: time", transform=ax.transAxes, fontsize=10
+        )
 
     plt.title("Trefoil Knot Causal Embedding")
     plt.tight_layout()
-    plt.savefig("./outputs/trefoil_causal_graph.png", dpi=150, bbox_inches="tight")
+    plt.savefig(
+        os.path.join(OUTPUT_DIR, "trefoil_causal_graph.png"),
+        dpi=150,
+        bbox_inches="tight",
+    )
     plt.close()  # Close to prevent memory leaks
 
     console.print(
@@ -1004,7 +1191,9 @@ def embed_trefoil(events, scale=1.0):
 
         # Add time progression to maintain causal structure
         time_offset = (
-            original_time * 0.1 if hasattr(original_time, "__float__") else i * 0.05
+            original_time * 0.1
+            if hasattr(original_time, "__float__")
+            else i * 0.05
         )
         z += time_offset
 
@@ -1013,22 +1202,29 @@ def embed_trefoil(events, scale=1.0):
 
 
 # %%
-console.print("\n[bold cyan]🪢 Creating Trefoil Knot Embedding[/bold cyan]")
+console.print(
+    "\n[bold cyan]🪢 Creating Trefoil Knot Embedding[/bold cyan]"
+)
 
 # Use the existing ATTN_EVENTS_MASKED data instead of reading from file
 if "ATTN_EVENTS_MASKED" in globals() and len(ATTN_EVENTS_MASKED) > 0:
-    console.print(f"📊 Using {len(ATTN_EVENTS_MASKED)} masked attention events")
+    console.print(
+        f"📊 Using {len(ATTN_EVENTS_MASKED)} masked attention events"
+    )
 
     # Embed on trefoil and classify
     trefoil_events = embed_trefoil(ATTN_EVENTS_MASKED, scale=0.8)
-    df_trefoil_classified = classify_intervals_enhanced(trefoil_events)
+    df_trefoil_classified = classify_intervals_enhanced(
+        trefoil_events
+    )
 
     # Visualize the trefoil embedding
     visualize_trefoil_space(trefoil_events, df_trefoil_classified)
 
     # Save trefoil analysis to CSV
     df_trefoil_classified.to_csv(
-        "./outputs/trefoil_intervals_analysis.csv", index=False
+        os.path.join(OUTPUT_DIR, "trefoil_intervals_analysis.csv"),
+        index=False,
     )
     console.print(
         "✅ Saved trefoil analysis to [bold green]trefoil_intervals_analysis.csv[/bold green]"
@@ -1037,11 +1233,21 @@ if "ATTN_EVENTS_MASKED" in globals() and len(ATTN_EVENTS_MASKED) > 0:
     # Show trefoil analysis summary
     trefoil_summary = Table(title="🪢 Trefoil Knot Analysis Summary")
     trefoil_summary.add_column("Relation Type", style="cyan")
-    trefoil_summary.add_column("Count", style="magenta", justify="right")
-    trefoil_summary.add_column("Avg Cost", style="green", justify="right")
+    trefoil_summary.add_column(
+        "Count", style="magenta", justify="right"
+    )
+    trefoil_summary.add_column(
+        "Avg Cost", style="green", justify="right"
+    )
 
-    for relation in ["reversible-null", "timelike-irreversible", "spacelike"]:
-        subset = df_trefoil_classified.query(f"relation=='{relation}'")
+    for relation in [
+        "reversible-null",
+        "timelike-irreversible",
+        "spacelike",
+    ]:
+        subset = df_trefoil_classified.query(
+            f"relation=='{relation}'"
+        )
         count = len(subset)
         avg_cost = (
             subset["cost"].mean()
@@ -1057,8 +1263,12 @@ if "ATTN_EVENTS_MASKED" in globals() and len(ATTN_EVENTS_MASKED) > 0:
     console.print(trefoil_summary)
 
 else:
-    console.print("❌ No masked attention events available for trefoil embedding")
-    console.print("💡 Run the earlier sections first to generate ATTN_EVENTS_MASKED")
+    console.print(
+        "❌ No masked attention events available for trefoil embedding"
+    )
+    console.print(
+        "💡 Run the earlier sections first to generate ATTN_EVENTS_MASKED"
+    )
 
 
 # %%
@@ -1068,7 +1278,9 @@ def visualize_metric_space_no_spacelike(events, df_classified):
     ax = fig.add_subplot(111, projection="3d")
 
     # Filter out spacelike relations
-    df_filtered = df_classified[df_classified["relation"] != "spacelike"]
+    df_filtered = df_classified[
+        df_classified["relation"] != "spacelike"
+    ]
 
     # Plot events
     coords = [(e[1], e[2], e[3]) for e in events]
@@ -1084,20 +1296,26 @@ def visualize_metric_space_no_spacelike(events, df_classified):
         y = [from_event[2], to_event[2]]
         z = [from_event[3], to_event[3]]
 
-        color = "red" if row["relation"] == "timelike-irreversible" else "green"
+        color = (
+            "red"
+            if row["relation"] == "timelike-irreversible"
+            else "green"
+        )
         ax.plot(x, y, z, c=color, alpha=0.4, linewidth=1)
 
     ax.set_xlabel("Token Position")
     ax.set_ylabel("Head Index")
 
-    # Handle zlabel safely - use text annotation if zlabel fails
-    try:
-        ax.set_zlabel("Time")
-    except (AttributeError, TypeError):
-        # Fallback: add text annotation for Z axis
-        ax.text2D(0.05, 0.95, "Z: Time", transform=ax.transAxes)
+    # Handle 3D axis labels with better compatibility
+    if hasattr(ax, "set_zlabel"):
+        ax.set_zlabel("Time")  # type: ignore
+    else:
+        # Fallback for systems without proper 3D support
+        ax.text2D(0.02, 0.95, "Z: Time", transform=ax.transAxes)
 
-    ax.set_title("Metric Space Visualization (No Spacelike Relations)")
+    ax.set_title(
+        "Metric Space Visualization (No Spacelike Relations)"
+    )
 
     # Add legend
     ax.scatter([], [], c="red", label="Timelike-Irreversible")
@@ -1105,23 +1323,38 @@ def visualize_metric_space_no_spacelike(events, df_classified):
     ax.legend()
 
     plt.tight_layout()
-    plt.savefig("./outputs/metric_space_no_spacelike.png", dpi=150, bbox_inches="tight")
+    plt.savefig(
+        os.path.join(OUTPUT_DIR, "metric_space_no_spacelike.png"),
+        dpi=150,
+        bbox_inches="tight",
+    )
     plt.close()  # Close to prevent memory leaks
 
 
 # Visualize the filtered metric space
-console.print("\n[bold cyan]📊 Visualizing Metric Space (No Spacelike)[/bold cyan]")
+console.print(
+    "\n[bold cyan]📊 Visualizing Metric Space (No Spacelike)[/bold cyan]"
+)
 
 # Check if trefoil_events and df_trefoil_classified exist
-if "trefoil_events" in locals() and "df_trefoil_classified" in locals():
-    visualize_metric_space_no_spacelike(trefoil_events, df_trefoil_classified)
+if (
+    "trefoil_events" in locals()
+    and "df_trefoil_classified" in locals()
+):
+    visualize_metric_space_no_spacelike(
+        trefoil_events, df_trefoil_classified
+    )
     console.print("✅ Saved filtered metric space visualization")
 else:
-    console.print("⚠️  Trefoil events not available. Creating sample visualization...")
+    console.print(
+        "⚠️  Trefoil events not available. Creating sample visualization..."
+    )
     # Use circular events if available
     if "circular_events" in locals() and len(circular_events) > 0:
         sample_df = classify_intervals_enhanced(circular_events)
-        visualize_metric_space_no_spacelike(circular_events, sample_df)
+        visualize_metric_space_no_spacelike(
+            circular_events, sample_df
+        )
         console.print("✅ Created visualization with circular events")
     else:
         console.print("❌ No events available for visualization")
@@ -1163,7 +1396,9 @@ def make_spacetime_mask_hook():
     return hook_fn
 
 
-console.print("\n[bold cyan]🚫 Testing Spacelike Relation Removal[/bold cyan]")
+console.print(
+    "\n[bold cyan]🚫 Testing Spacelike Relation Removal[/bold cyan]"
+)
 
 # Define test text input
 test_sentences = [
@@ -1185,7 +1420,9 @@ for i, blk in enumerate(model.transformer.h):
     hooks.append(hook)
 
 # Get perplexity with spacelike relations removed
-console.print("📊 Computing perplexity with spacelike relations removed...")
+console.print(
+    "📊 Computing perplexity with spacelike relations removed..."
+)
 try:
     masked_ppl = perplexity_on_long_text(test_text, model)
 
@@ -1194,19 +1431,23 @@ try:
         hook.remove()
 
     # Create comparison table
-    spacetime_results = Table(title="🌌 Spacelike Relation Removal Results")
+    spacetime_results = Table(
+        title="🌌 Spacelike Relation Removal Results"
+    )
     spacetime_results.add_column("Method", style="cyan", no_wrap=True)
-    spacetime_results.add_column("Perplexity", style="magenta", justify="right")
-    spacetime_results.add_column("Change", style="green", justify="right")
+    spacetime_results.add_column(
+        "Perplexity", style="magenta", justify="right"
+    )
+    spacetime_results.add_column(
+        "Change", style="green", justify="right"
+    )
     spacetime_results.add_column("Interpretation", style="yellow")
 
     # Calculate change
     ppl_change = ((masked_ppl - baseline_ppl) / baseline_ppl) * 100
     change_color = "green" if ppl_change < 0 else "red"
     change_symbol = "↓" if ppl_change < 0 else "↑"
-    change_str = (
-        f"[{change_color}]{change_symbol}{abs(ppl_change):.1f}%[/{change_color}]"
-    )
+    change_str = f"[{change_color}]{change_symbol}{abs(ppl_change):.1f}%[/{change_color}]"
 
     # Interpretation
     if ppl_change < -5:
@@ -1218,9 +1459,14 @@ try:
     else:
         interpretation = "❌ Degraded"
 
-    spacetime_results.add_row("Baseline", f"{baseline_ppl:.3f}", "—", "📊 Reference")
     spacetime_results.add_row(
-        "No Spacelike", f"{masked_ppl:.3f}", change_str, interpretation
+        "Baseline", f"{baseline_ppl:.3f}", "—", "📊 Reference"
+    )
+    spacetime_results.add_row(
+        "No Spacelike",
+        f"{masked_ppl:.3f}",
+        change_str,
+        interpretation,
     )
 
     console.print(spacetime_results)
@@ -1253,7 +1499,9 @@ except Exception as e:
         hook.remove()
     console.print("🔧 Hooks removed after error")
 
-console.print("\n[bold green]🎉 Spacetime analysis complete![/bold green]")
+console.print(
+    "\n[bold green]🎉 Spacetime analysis complete![/bold green]"
+)
 
 # %%
 # Soft Regularization Approach: Penalize Spacelike Relations Instead of Hard Masking
@@ -1280,10 +1528,14 @@ class SpacetimeRegularizedModel(torch.nn.Module):
 
         def capture_attention(module, input, output):
             if len(output) > 1:
-                self.attention_weights.append(output[1])  # attention weights
+                self.attention_weights.append(
+                    output[1]
+                )  # attention weights
 
         for block in self.base_model.transformer.h:
-            hooks.append(block.attn.register_forward_hook(capture_attention))
+            hooks.append(
+                block.attn.register_forward_hook(capture_attention)
+            )
 
         # Forward pass
         outputs = self.base_model(input_ids=input_ids, labels=labels)
@@ -1331,7 +1583,9 @@ class SpacetimeRegularizedModel(torch.nn.Module):
                     # Penalize spacelike relations (s² > 0)
                     if s_squared > 0:
                         # Add penalty proportional to attention weight
-                        spacelike_penalty += torch.sum(attn_weights[:, :, i, j] ** 2)
+                        spacelike_penalty += torch.sum(
+                            attn_weights[:, :, i, j] ** 2
+                        )
 
             total_spacelike_loss += spacelike_penalty
 
@@ -1342,7 +1596,9 @@ class SpacetimeRegularizedModel(torch.nn.Module):
         )
 
 
-def test_soft_regularization(test_text, lambda_values=[0.0001, 0.01, 0.1]):
+def test_soft_regularization(
+    test_text, lambda_values=[0.0001, 0.01, 0.1]
+):
     """Test different regularization strengths"""
     results = []
 
@@ -1356,17 +1612,26 @@ def test_soft_regularization(test_text, lambda_values=[0.0001, 0.01, 0.1]):
         console.print(f"🔧 Testing λ = {lambda_reg}...")
 
         # Create regularized model
-        reg_model = SpacetimeRegularizedModel(model, lambda_reg=lambda_reg)
+        reg_model = SpacetimeRegularizedModel(
+            model, lambda_reg=lambda_reg
+        )
         reg_model.eval()
 
         # Fine-tune with regularization (simulate a few gradient steps)
-        inputs = tok(test_text, return_tensors="pt", truncation=True, max_length=512)
+        inputs = tok(
+            test_text,
+            return_tensors="pt",
+            truncation=True,
+            max_length=512,
+        )
         inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
 
         try:
             with torch.no_grad():
                 # Get perplexity with regularization
-                outputs = reg_model(**inputs, labels=inputs["input_ids"])
+                outputs = reg_model(
+                    **inputs, labels=inputs["input_ids"]
+                )
                 regularized_loss = outputs.loss.item()
                 regularized_ppl = math.exp(regularized_loss)
 
@@ -1377,11 +1642,21 @@ def test_soft_regularization(test_text, lambda_values=[0.0001, 0.01, 0.1]):
                 if abs(regularized_ppl - baseline_ppl) < 0.1
                 else "❌"
             )
-            results.append((f"λ = {lambda_reg}", lambda_reg, regularized_ppl, status))
+            results.append((
+                f"λ = {lambda_reg}",
+                lambda_reg,
+                regularized_ppl,
+                status,
+            ))
 
         except Exception as e:
             console.print(f"❌ Error with λ = {lambda_reg}: {str(e)}")
-            results.append((f"λ = {lambda_reg}", lambda_reg, float("inf"), "💥"))
+            results.append((
+                f"λ = {lambda_reg}",
+                lambda_reg,
+                float("inf"),
+                "💥",
+            ))
 
     return results
 
@@ -1400,9 +1675,15 @@ regularization_results = test_soft_regularization(soft_reg_test_text)
 # Create results table
 soft_reg_table = Table(title="🌊 Soft Regularization Results")
 soft_reg_table.add_column("Method", style="cyan", no_wrap=True)
-soft_reg_table.add_column("Lambda (λ)", style="yellow", justify="right")
-soft_reg_table.add_column("Perplexity", style="magenta", justify="right")
-soft_reg_table.add_column("vs Baseline", style="green", justify="right")
+soft_reg_table.add_column(
+    "Lambda (λ)", style="yellow", justify="right"
+)
+soft_reg_table.add_column(
+    "Perplexity", style="magenta", justify="right"
+)
+soft_reg_table.add_column(
+    "vs Baseline", style="green", justify="right"
+)
 soft_reg_table.add_column("Status", style="white", justify="center")
 
 baseline_ppl = regularization_results[0][2]
@@ -1419,7 +1700,9 @@ for method, lambda_val, ppl, status in regularization_results:
     lambda_str = "—" if lambda_val == 0.0 else f"{lambda_val:.3f}"
     ppl_str = f"{ppl:.3f}" if ppl != float("inf") else "Error"
 
-    soft_reg_table.add_row(method, lambda_str, ppl_str, change_str, status)
+    soft_reg_table.add_row(
+        method, lambda_str, ppl_str, change_str, status
+    )
 
 console.print(soft_reg_table)
 
@@ -1473,11 +1756,15 @@ console.print(
     )
 )
 
-console.print("\n[bold green]🎉 Soft regularization analysis complete![/bold green]")
+console.print(
+    "\n[bold green]🎉 Soft regularization analysis complete![/bold green]"
+)
 
 # %%
 # Diagnostic: Why are we seeing errors?
-console.print("\n[bold yellow]🔍 Diagnosing Soft Regularization Errors[/bold yellow]")
+console.print(
+    "\n[bold yellow]🔍 Diagnosing Soft Regularization Errors[/bold yellow]"
+)
 
 diagnostic_text = """
 ❗ [bold]Expected Error Sources:[/bold]
@@ -1517,7 +1804,9 @@ def analyze_spacelike_attention(model, text, detailed=True):
     """Analyze spacelike attention patterns without modifying the model"""
 
     # Tokenize input
-    inputs = tok(text, return_tensors="pt", truncation=True, max_length=256)
+    inputs = tok(
+        text, return_tensors="pt", truncation=True, max_length=256
+    )
     inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
 
     attention_data = []
@@ -1525,14 +1814,18 @@ def analyze_spacelike_attention(model, text, detailed=True):
     def capture_attention_safe(module, input, output):
         """Safely capture attention weights without modification"""
         if len(output) > 1 and output[1] is not None:
-            attn_weights = output[1].detach().cpu()  # Move to CPU safely
+            attn_weights = (
+                output[1].detach().cpu()
+            )  # Move to CPU safely
             attention_data.append(attn_weights)
 
     # Register hooks safely
     hooks = []
     try:
         for i, block in enumerate(model.transformer.h):
-            hook = block.attn.register_forward_hook(capture_attention_safe)
+            hook = block.attn.register_forward_hook(
+                capture_attention_safe
+            )
             hooks.append(hook)
 
         # Forward pass
@@ -1568,14 +1861,18 @@ def analyze_spacelike_attention(model, text, detailed=True):
                         total_spacelike_weight += weight
 
         if total_attention_weight > 0:
-            spacelike_ratio = total_spacelike_weight / total_attention_weight
+            spacelike_ratio = (
+                total_spacelike_weight / total_attention_weight
+            )
 
         return {
             "total_spacelike_weight": total_spacelike_weight,
             "total_attention_weight": total_attention_weight,
             "spacelike_ratio": spacelike_ratio,
             "num_layers": len(attention_data),
-            "sequence_length": attention_data[0].shape[2] if attention_data else 0,
+            "sequence_length": attention_data[0].shape[2]
+            if attention_data
+            else 0,
         }
 
     except Exception as e:
@@ -1586,7 +1883,9 @@ def analyze_spacelike_attention(model, text, detailed=True):
         return None
 
 
-def simulate_soft_regularization_effect(analysis_results, lambda_values):
+def simulate_soft_regularization_effect(
+    analysis_results, lambda_values
+):
     """Simulate the effect of soft regularization without actually modifying the model"""
 
     if not analysis_results:
@@ -1600,7 +1899,9 @@ def simulate_soft_regularization_effect(analysis_results, lambda_values):
     for lambda_val in lambda_values:
         # Simulate perplexity change based on spacelike ratio and regularization strength
         # Higher spacelike ratio + higher lambda = bigger penalty = higher perplexity
-        penalty_factor = 1.0 + (lambda_val * spacelike_ratio * 10)  # Scaling factor
+        penalty_factor = 1.0 + (
+            lambda_val * spacelike_ratio * 10
+        )  # Scaling factor
         simulated_ppl = baseline_ppl * penalty_factor
 
         status = (
@@ -1610,28 +1911,37 @@ def simulate_soft_regularization_effect(analysis_results, lambda_values):
             if abs(simulated_ppl - baseline_ppl) < baseline_ppl * 0.1
             else "📈"
         )
-        simulated_results.append(
-            (f"λ = {lambda_val} (sim)", lambda_val, simulated_ppl, status)
-        )
+        simulated_results.append((
+            f"λ = {lambda_val} (sim)",
+            lambda_val,
+            simulated_ppl,
+            status,
+        ))
 
     return simulated_results
 
 
 # Run robust analysis
 console.print("🔍 Analyzing spacelike attention patterns...")
-analysis_results = analyze_spacelike_attention(model, soft_reg_test_text)
+analysis_results = analyze_spacelike_attention(
+    model, soft_reg_test_text
+)
 
 if analysis_results:
     # Display analysis results
     analysis_table = Table(title="🔬 Spacelike Attention Analysis")
     analysis_table.add_column("Metric", style="cyan")
-    analysis_table.add_column("Value", style="magenta", justify="right")
+    analysis_table.add_column(
+        "Value", style="magenta", justify="right"
+    )
     analysis_table.add_column("Interpretation", style="green")
 
     spacelike_ratio = analysis_results["spacelike_ratio"]
 
     analysis_table.add_row(
-        "Spacelike Ratio", f"{spacelike_ratio:.3f}", "High = More acausal attention"
+        "Spacelike Ratio",
+        f"{spacelike_ratio:.3f}",
+        "High = More acausal attention",
     )
     analysis_table.add_row(
         "Total Layers",
@@ -1639,7 +1949,9 @@ if analysis_results:
         "Analyzed transformer layers",
     )
     analysis_table.add_row(
-        "Sequence Length", str(analysis_results["sequence_length"]), "Input token count"
+        "Sequence Length",
+        str(analysis_results["sequence_length"]),
+        "Input token count",
     )
 
     console.print(analysis_table)
@@ -1652,11 +1964,19 @@ if analysis_results:
     )
 
     # Create simulated results table
-    sim_table = Table(title="🧮 Simulated Soft Regularization Effects")
+    sim_table = Table(
+        title="🧮 Simulated Soft Regularization Effects"
+    )
     sim_table.add_column("Method", style="cyan", no_wrap=True)
-    sim_table.add_column("Lambda (λ)", style="yellow", justify="right")
-    sim_table.add_column("Est. Perplexity", style="magenta", justify="right")
-    sim_table.add_column("vs Baseline", style="green", justify="right")
+    sim_table.add_column(
+        "Lambda (λ)", style="yellow", justify="right"
+    )
+    sim_table.add_column(
+        "Est. Perplexity", style="magenta", justify="right"
+    )
+    sim_table.add_column(
+        "vs Baseline", style="green", justify="right"
+    )
     sim_table.add_column("Status", style="white", justify="center")
 
     baseline_ppl = simulated_results[0][2]
@@ -1668,11 +1988,15 @@ if analysis_results:
             change = ((ppl - baseline_ppl) / baseline_ppl) * 100
             color = "green" if change < 0 else "red"
             symbol = "↓" if change < 0 else "↑"
-            change_str = f"[{color}]{symbol}{abs(change):.1f}%[/{color}]"
+            change_str = (
+                f"[{color}]{symbol}{abs(change):.1f}%[/{color}]"
+            )
 
         lambda_str = "—" if lambda_val == 0.0 else f"{lambda_val:.4f}"
 
-        sim_table.add_row(method, lambda_str, f"{ppl:.3f}", change_str, status)
+        sim_table.add_row(
+            method, lambda_str, f"{ppl:.3f}", change_str, status
+        )
 
     console.print(sim_table)
 
@@ -1700,4 +2024,6 @@ if analysis_results:
 else:
     console.print("❌ Could not analyze attention patterns")
 
-console.print("\n[bold green]✅ Robust analysis complete![/bold green]")
+console.print(
+    "\n[bold green]✅ Robust analysis complete![/bold green]"
+)

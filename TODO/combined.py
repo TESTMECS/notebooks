@@ -5,10 +5,9 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 import torch.nn as nn
 import numpy as np
+# from enc2dec import Transformer
 
 # %%
-
-
 # === Gravity-aware GNN Module ===
 class GravityAwareGNN(torch.nn.Module):
     def __init__(self, in_dim=5, hidden_dim=64, out_dim=64):
@@ -23,34 +22,6 @@ class GravityAwareGNN(torch.nn.Module):
 
 
 # %%
-# === Wrapper Module ===
-class GravityTransformerPipeline(torch.nn.Module):
-    def __init__(self, phi_model, gnn_hidden=64, transformer_dim=64, vocab_size=1000):
-        super().__init__()
-        self.phi_model = phi_model
-        self.gnn = GravityAwareGNN(
-            in_dim=5, hidden_dim=gnn_hidden, out_dim=transformer_dim
-        )
-        self.transformer = Transformer(
-            src_vocab=vocab_size, tgt_vocab=vocab_size, d_model=transformer_dim
-        )
-
-    def forward(self, spatial, time_vec, edge_index, decoder_input):
-        # Combine spacetime + phi into GNN input
-        coords = torch.cat([time_vec.unsqueeze(1), spatial], dim=1)  # (N, 4)
-        with torch.no_grad():
-            phi_vals = self.phi_model(coords)  # (N,)
-        node_feats = torch.cat([coords, phi_vals.unsqueeze(1)], dim=1)  # (N, 5)
-
-        # GNN encoding
-        gnn_out = self.gnn(node_feats, edge_index)  # (N, d_model)
-        encoder_input = gnn_out.unsqueeze(0)  # (1, N, d_model)
-
-        # Transformer decoding
-        output = self.transformer(encoder_input, decoder_input)  # (1, T, d_model)
-        return output
-
-
 class CausalConnectionPredictor(nn.Module):
     """Neural network to predict causal connections in spacetime"""
 
@@ -119,7 +90,7 @@ def extract_edge_features(event1, event2):
 
     return torch.FloatTensor([dx, dy, dt, ds2, spatial_dist, is_timelike])
 
-
+# %%
 class GravityCausalWrapper(nn.Module):
     def __init__(self, gnn_model, phi_model, edge_predictor):
         super().__init__()
@@ -318,4 +289,6 @@ causal_refine_embeddings_with_phi(
     epsilon=1e-5,
 )
 
-# %%
+
+# %% [markdown]
+# Going to need to implement this training on a variety of tasks. 
