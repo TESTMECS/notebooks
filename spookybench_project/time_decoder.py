@@ -18,10 +18,6 @@ from TODO.combined import GravityField, causal_refine_embeddings_with_phi
 
 from .realnvp import RealNVPDecoder
 
-=======
-``GravityField``. The ``TimeAwareDecoder`` consumes these causally
-ordered embeddings.
-"""
 from __future__ import annotations
 
 import torch
