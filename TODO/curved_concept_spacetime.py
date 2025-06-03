@@ -524,8 +524,6 @@ def train_inn_phi_embedding(
 
 # %% [markdown]
 # ## Visualization Functions
-
-
 def plot_3d_manifold(
     m_coords_map,
     hierarchy_pairs,
