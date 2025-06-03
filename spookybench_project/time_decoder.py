@@ -5,6 +5,20 @@ GravityField and causal projection utilities from :mod:`TODO.combined`.
 
 The SpookyBench dataset is loaded from Hugging Face. Each text sample
 is embedded with a transformer model and refined with a learned
+``GravityField``. The ``RealNVPDecoder`` consumes these causally
+ordered embeddings using an invertible flow network.
+"""
+
+from __future__ import annotations
+
+from datasets import load_dataset
+from transformers import AutoModel, AutoTokenizer
+
+from TODO.combined import GravityField, causal_refine_embeddings_with_phi
+
+from .realnvp import RealNVPDecoder
+
+=======
 ``GravityField``. The ``TimeAwareDecoder`` consumes these causally
 ordered embeddings.
 """
@@ -17,11 +31,9 @@ from transformers import AutoTokenizer, AutoModel
 
 from TODO.combined import GravityField, causal_refine_embeddings_with_phi
 
-
 def load_spookybench(split: str = "train[:10]"):
     """Load a small portion of the SpookyBench text split."""
     return load_dataset("timeblindness/spooky-bench", name="text", split=split)
-
 
 class TimeAwareDecoder(nn.Module):
     """Simple decoder that predicts a scalar for each token."""
@@ -49,7 +61,7 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     bert = AutoModel.from_pretrained("bert-base-uncased")
     phi_model = GravityField(input_dim=4)
-    decoder = TimeAwareDecoder()
+    decoder = RealNVPDecoder(input_dim=769)
 
     dataset = load_spookybench()
     for item in dataset:
