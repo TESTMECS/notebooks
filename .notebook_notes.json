@@ -25,5 +25,14 @@
       "created": "2025-05-31T02:32:52.496778",
       "modified": "2025-05-31T02:32:52.496779"
     }
+  ],
+  "Vec2Vec": [
+    {
+      "id": "50f578c4",
+      "content": "Excellent implementation of unsupervised embedding translation - could be useful for cross-domain tasks",
+      "category": "general",
+      "created": "2025-06-03T13:37:31.408863",
+      "modified": "2025-06-03T13:37:31.408865"
+    }
   ]
 }

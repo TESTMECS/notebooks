@@ -1,6 +1,7 @@
 # %%
 import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend
+
+matplotlib.use("Agg")  # Non-interactive backend
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -74,7 +75,7 @@ nx.draw(
 axes[1].set_title("Abstract Stack (List)")
 
 plt.tight_layout()
-plt.savefig('heapAbstract/heap_vs_stack.png', dpi=150, bbox_inches='tight')
+plt.savefig("heapAbstract/heap_vs_stack.png", dpi=150, bbox_inches="tight")
 plt.close()  # Close instead of show
 print("✅ Saved heap vs stack visualization")
 
@@ -172,7 +173,7 @@ plt.title("Simulated Attention Matrix")
 plt.xlabel("Key")
 plt.ylabel("Query")
 plt.tight_layout()
-plt.savefig('heapAbstract/attention_matrix.png', dpi=150, bbox_inches='tight')
+plt.savefig("heapAbstract/attention_matrix.png", dpi=150, bbox_inches="tight")
 plt.close()  # Close instead of show
 print("✅ Saved attention matrix visualization")
 
@@ -190,7 +191,7 @@ nx.draw(
 )
 nx.draw_networkx_edges(G, pos, edgelist=edges, arrowstyle="-|>", arrowsize=20, width=2)
 plt.title("Projected Attention Graph (Top-k Structure)")
-plt.savefig('heapAbstract/attention_graph.png', dpi=150, bbox_inches='tight')
+plt.savefig("heapAbstract/attention_graph.png", dpi=150, bbox_inches="tight")
 plt.close()  # Close instead of show
 print("✅ Saved attention graph visualization")
 
@@ -209,7 +210,7 @@ def project_until_convergence(
     """
     num_passes = 0
     converged = False
-    
+
     # Get device from phi_model
     device = next(phi_model.parameters()).device
 
@@ -234,7 +235,9 @@ def project_until_convergence(
 
             if ds2 >= -eps1:
                 # Adjust time_i to be slightly later than time_j
-                new_delta_t = torch.sqrt(torch.tensor((dx2 + eps1) / phi_i + 1e-9)).item()
+                new_delta_t = torch.sqrt(
+                    torch.tensor((dx2 + eps1) / phi_i + 1e-9)
+                ).item()
                 time_vec[i] = t_j + new_delta_t
                 converged = False
 
@@ -308,7 +311,7 @@ def train_phi_from_ds2_violations(
     time_vec = time_vec.to(device)
 
     print(f"Training phi model for {num_epochs} epochs...")
-    
+
     for epoch in range(num_epochs):
         total_loss = 0.0
         phi_model.train()
@@ -367,12 +370,14 @@ def draw_attention_graph(tokens, edges, title, is_valid=True):
     plt.title(title)
     plt.axis("off")
     # Save with filename based on title
-    filename = title.replace("✅", "valid").replace("❌", "invalid").replace(" ", "_").lower()
-    filename = f'heapAbstract/{filename}.png'
-    plt.savefig(filename, dpi=150, bbox_inches='tight')
+    filename = (
+        title.replace("✅", "valid").replace("❌", "invalid").replace(" ", "_").lower()
+    )
+    filename = f"heapAbstract/{filename}.png"
+    plt.savefig(filename, dpi=150, bbox_inches="tight")
     plt.close()  # Close instead of show
     print(f"✅ Saved {filename}")
-    
+
     return G
 
 
@@ -403,24 +408,28 @@ if len(edges_indices) > 0:
     # Run the π_attn projection
     projected_structure = π_attn(attn_matrix, tokens, spatial, time_vec, phi_model)
     print(f"Projected structure result: {type(projected_structure)}")
-    
+
     if projected_structure != "✗":
         print("✅ Successfully projected attention to valid DAG!")
         # Convert networkx edges to list for visualization
         projected_edges = list(projected_structure.edges())
-        draw_attention_graph(tokens, projected_edges, "✅ Valid Projected Attention DAG", is_valid=True)
+        draw_attention_graph(
+            tokens, projected_edges, "✅ Valid Projected Attention DAG", is_valid=True
+        )
     else:
         print("❌ Could not project to valid DAG")
         # Show original problematic structure
         original_edges = [(tokens[i], tokens[j]) for i, j in edges_indices]
-        draw_attention_graph(tokens, original_edges, "❌ Original Attention (Invalid)", is_valid=False)
+        draw_attention_graph(
+            tokens, original_edges, "❌ Original Attention (Invalid)", is_valid=False
+        )
 else:
     print("No strong attention edges found for training")
 
 # Example visualizations with different structures
-print("\n" + "="*50)
+print("\n" + "=" * 50)
 print("EXAMPLE STRUCTURES")
-print("="*50)
+print("=" * 50)
 
 # Example 1: Valid DAG (tree-like attention)
 edges_valid = [
@@ -441,11 +450,17 @@ edges_invalid = [
 ]
 
 # Visualize both examples
-G_valid = draw_attention_graph(tokens, edges_valid, "✅ Example Valid Attention DAG", is_valid=True)
-G_invalid = draw_attention_graph(tokens, edges_invalid, "❌ Example Invalid Attention (Cycle)", is_valid=False)
+G_valid = draw_attention_graph(
+    tokens, edges_valid, "✅ Example Valid Attention DAG", is_valid=True
+)
+G_invalid = draw_attention_graph(
+    tokens, edges_invalid, "❌ Example Invalid Attention (Cycle)", is_valid=False
+)
 
 print(f"Valid example - Is DAG? {nx.is_directed_acyclic_graph(G_valid)}")
 print(f"Invalid example - Is DAG? {nx.is_directed_acyclic_graph(G_invalid)}")
+
+
 # %%
 def analyze_and_visualize_attention(attn_matrix, tokens, threshold=0.5):
     """
@@ -471,35 +486,49 @@ def analyze_and_visualize_attention(attn_matrix, tokens, threshold=0.5):
 
     # Plot heatmap
     plt.figure(figsize=(6, 4))
-    sns.heatmap(attn_matrix, xticklabels=tokens, yticklabels=tokens,
-                cmap="YlGnBu", annot=True, fmt=".2f")
+    sns.heatmap(
+        attn_matrix,
+        xticklabels=tokens,
+        yticklabels=tokens,
+        cmap="YlGnBu",
+        annot=True,
+        fmt=".2f",
+    )
     plt.title("Attention Heatmap")
     plt.xlabel("Key")
     plt.ylabel("Query")
     plt.tight_layout()
-    
+
     # Save heatmap with descriptive filename
-    heatmap_filename = f"heapAbstract/attention_heatmap_{'valid' if is_dag else 'invalid'}.png"
-    plt.savefig(heatmap_filename, dpi=150, bbox_inches='tight')
+    heatmap_filename = (
+        f"heapAbstract/attention_heatmap_{'valid' if is_dag else 'invalid'}.png"
+    )
+    plt.savefig(heatmap_filename, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"✅ Saved {heatmap_filename}")
 
     # Plot graph
-    draw_attention_graph(tokens, edges,
-                         "✅ Valid Attention DAG" if is_dag else "❌ Invalid Attention (Cycle Detected)",
-                         is_valid=is_dag)
-    
+    draw_attention_graph(
+        tokens,
+        edges,
+        "✅ Valid Attention DAG" if is_dag else "❌ Invalid Attention (Cycle Detected)",
+        is_valid=is_dag,
+    )
+
     return is_dag
 
+
 # Simulate two matrices
-attn_valid = np.array([
-    [0.1, 0.6, 0.1, 0.1, 0.05, 0.05],
-    [0.7, 0.1, 0.1, 0.05, 0.025, 0.025],
-    [0.05, 0.8, 0.1, 0.025, 0.025, 0.0],
-    [0.025, 0.025, 0.8, 0.1, 0.05, 0.0],
-    [0.025, 0.025, 0.1, 0.8, 0.05, 0.0],
-    [0.7, 0.2, 0.05, 0.025, 0.025, 0.0],
-])
+attn_valid = np.array(
+    [
+        [0.1, 0.6, 0.1, 0.1, 0.05, 0.05],
+        [0.7, 0.1, 0.1, 0.05, 0.025, 0.025],
+        [0.05, 0.8, 0.1, 0.025, 0.025, 0.0],
+        [0.025, 0.025, 0.8, 0.1, 0.05, 0.0],
+        [0.025, 0.025, 0.1, 0.8, 0.05, 0.0],
+        [0.7, 0.2, 0.05, 0.025, 0.025, 0.0],
+    ]
+)
 
 attn_invalid = np.copy(attn_valid)
 attn_invalid[0, 4] = 0.6  # introduces a backward attention that creates a cycle
@@ -539,6 +568,7 @@ tokens = tokenizer.convert_ids_to_tokens(inputs["input_ids"][0])
 is_valid = analyze_and_visualize_attention(attn_np, tokens, threshold=0.2)
 print("Is attention a DAG?", is_valid)
 
+
 class MinkowskiAttention(nn.Module):
     def __init__(self, embed_dim, n_heads):
         super().__init__()
@@ -565,11 +595,11 @@ class MinkowskiAttention(nn.Module):
         x_i = spatial_coords.unsqueeze(1)  # (B, 1, T, d)
         x_j = spatial_coords.unsqueeze(2)  # (B, T, 1, d)
         delta_x = x_i - x_j
-        dx2 = (delta_x ** 2).sum(-1, keepdim=True)  # (B, T, T, 1)
+        dx2 = (delta_x**2).sum(-1, keepdim=True)  # (B, T, T, 1)
 
-        ds2 = -delta_t ** 2 + dx2  # Minkowski interval
+        ds2 = -(delta_t**2) + dx2  # Minkowski interval
 
-        causal_mask = (ds2 < 0).float()  # (B, T, T, 1)
+        _causal_mask = (ds2 < 0).float()  # (B, T, T, 1)
 
         attn_scores = (Q @ K.transpose(-2, -1)) * self.scale  # (B, T, H, T)
         attn_scores = attn_scores.permute(0, 2, 1, 3)  # (B, H, T, T)
@@ -579,7 +609,7 @@ class MinkowskiAttention(nn.Module):
         attn_scores = attn_scores - penalty.unsqueeze(1)  # Broadcast to heads
 
         attn_weights = F.softmax(attn_scores, dim=-1)
-        attn_out = (attn_weights @ V.permute(0, 2, 1, 3))  # (B, H, T, d)
+        attn_out = attn_weights @ V.permute(0, 2, 1, 3)  # (B, H, T, d)
         attn_out = attn_out.permute(0, 2, 1, 3).reshape(B, T, D)
 
         return self.out_proj(attn_out), attn_weights
