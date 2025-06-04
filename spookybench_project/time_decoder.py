@@ -11,15 +11,6 @@ ordered embeddings using an invertible flow network.
 
 from __future__ import annotations
 
-from datasets import load_dataset
-from transformers import AutoModel, AutoTokenizer
-
-from TODO.combined import GravityField, causal_refine_embeddings_with_phi
-
-from .realnvp import RealNVPDecoder
-
-from __future__ import annotations
-
 import torch
 from torch import nn
 from datasets import load_dataset
