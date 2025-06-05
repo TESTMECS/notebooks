@@ -1,0 +1,3 @@
+2025-06-04 21:51:15,955 - pyswarms.single.global_best - INFO - Optimize for 10 iters with {'c1': 1.5, 'c2': 1.5, 'w': 0.6}
+2025-06-04 22:38:34,878 - pyswarms.single.global_best - INFO - Optimize for 5 iters with {'c1': 1.5, 'c2': 1.5, 'w': 0.6}
+2025-06-04 22:38:35,734 - pyswarms.single.global_best - INFO - Optimization finished | best cost: 13.514069080352783, best pos: [0.458919   0.98741921 0.76589966 ... 0.64336804 0.66897324 0.3329178 ]
