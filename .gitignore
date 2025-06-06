@@ -1,0 +1,12 @@
+spookybench_project/__pycache__/realnvp.cpython-312.pyc
+spookybench_project/__pycache__/time_decoder.cpython-312.pyc
+spookybench_project/validation_outputs/sample_1_text_frames.png
+spookybench_project/validation_outputs/sample_2_text_frames.png
+spookybench_project/validation_outputs/sample_3_text_frames.png
+spookybench_project/validation_outputs/sample_4_text_frames.png
+spookybench_project/validation_outputs/sample_5_text_frames.png
+**/data/**
+**/outputs/** 
+**/__pycache__/**
+**/checkpoints/**
+**/.ipynb_checkpoints/**
