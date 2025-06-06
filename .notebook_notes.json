@@ -1,38 +1,11 @@
 {
-  "Causal_Attention": [
+  "gravityModels/VZController.py": [
     {
-      "id": "5ae75618",
-      "content": "Amazing work on reversible attention mechanisms!",
+      "id": "bc252cc6",
+      "content": "fine-tuning RL usually caps out on improvement around 200 steps.",
       "category": "general",
-      "created": "2025-05-31T02:32:44.004123",
-      "modified": "2025-05-31T02:32:44.004124"
-    }
-  ],
-  "ConstructorTheory": [
-    {
-      "id": "5a28995f",
-      "content": "Fascinating approach to world models for LLMs",
-      "category": "general",
-      "created": "2025-05-31T02:32:52.460194",
-      "modified": "2025-05-31T02:32:52.460195"
-    }
-  ],
-  "Spacetime+Lorentz": [
-    {
-      "id": "7d310101",
-      "content": "Great visualization of hierarchical embeddings",
-      "category": "general",
-      "created": "2025-05-31T02:32:52.496778",
-      "modified": "2025-05-31T02:32:52.496779"
-    }
-  ],
-  "Vec2Vec": [
-    {
-      "id": "50f578c4",
-      "content": "Excellent implementation of unsupervised embedding translation - could be useful for cross-domain tasks",
-      "category": "general",
-      "created": "2025-06-03T13:37:31.408863",
-      "modified": "2025-06-03T13:37:31.408865"
+      "created": "2025-06-06T19:57:59.777003",
+      "modified": "2025-06-06T19:57:59.777006"
     }
   ]
 }
