@@ -88,13 +88,5 @@ uv sync
 python main.py --help 
 ```
 
-## 📚 Research Areas
-
-This repository explores the intersection of:
-- Differential Geometry & Machine Learning
-- Quantum Computing & Neural Networks  
-- Renormalization Group Theory & Deep Learning
-- Causal Inference & Attention Mechanisms
-- Stochastic Processes & Generative Models
 
 
