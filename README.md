@@ -1,7 +1,3 @@
-# Physics-Informed Machine Learning Research
-
-This repository contains implementations and explorations of advanced machine learning concepts through the lens of physics, mathematics, and theoretical computer science.
-
 ## 📁 Project Structure
 
 ```
