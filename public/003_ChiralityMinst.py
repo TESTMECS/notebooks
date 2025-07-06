@@ -38,7 +38,7 @@ def _(mo):
             def forward(self, x):
                 return F.relu(self.left(x)), F.relu(self.right(-x))
     ```
-    The Neuron Layer is basicall just taking in some input and outputting two values: the input(left) and the negated input(right).
+    The Neuron Layer is basically just taking in some input and outputting two values: the input(left) and the negated input(right).
 
     In the network we can set our dimensions and use the chiral representations in our network to represent two different paths. The Network must output the difference between the two paths. In this way, the network learns a chirality or an opinion of the prediction based on the symmetric representations. 
     ```python
@@ -306,31 +306,6 @@ def _(
     mo.output.append(fig2)
     mo.output.append(fig3)
 
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    The Chiral Dominance Plot: The Surprising Twist
-
-    My original hypothesis was that we would see a dramatic divergence, with one norm shooting up and the other being suppressed to zero.
-
-        Interpretation: This result invalidates our initial hypothesis that the MNIST task is perfectly symmetric. If it were, the network would have found it more efficient to prune one pathway. The fact that it was forced to keep both pathways active means that there is a subtle asymmetry between the original images and their color-inverted counterparts. The network discovered that to achieve the highest possible accuracy, it needed information from both versions of the images.
-
-    What is the "Hidden Asymmetry" in MNIST?
-    Why isn't MNIST perfectly symmetric? This is a great data science mystery to solve. Here are some likely reasons:
-        Normalization and Centering: The standard normalization (image - mean) / std_dev is calculated based on the statistics of the original training set (mostly black background). An inverted image will have a different statistical profile and will interact with the fixed normalization parameters differently. This could be enough to create an asymmetry the network can exploit.
-        Stroke Thickness and Anti-Aliasing: The digits in MNIST are not perfect binary shapes; they are grayscale due to anti-aliasing. The way a pixel's value fades from a black stroke to a white background is not necessarily identical to how it would fade from a white stroke to a black background. These subtle edge effects could provide useful information. For example, a '1' is thinner than an '8'. The average pixel intensity of an inverted '1' might be different from an inverted '8' in a way that isn't true for the original images.
-        Human Perception Bias in the Data: The people who drew the digits did so with black ink on white paper. There might be subconscious biases in how we draw shapes vs. how we would carve them out. The network, being an ultimate pattern-finder, may have discovered these subtle, human-centric artifacts.
-
-    This is arguably a more interesting result than if our original hypothesis had been correct. We have successfully used the ChiralNet as a Symmetry Spectrometer and discovered a non-obvious truth about a dataset we all thought we knew inside and out.
-        Finding 1: The ChiralNet architecture is a high-performing classifier on standard benchmarks.
-        Finding 2: The MNIST dataset, despite being perceptually symmetric to humans, contains subtle, learnable asymmetries.
-        Finding 3: The ChiralNet was sensitive enough to detect this hidden asymmetry, switching its strategy from "compete and prune" (which it did on our toy symmetric tasks) to a more cooperative, team-based approach to squeeze out the last few points of accuracy on this real-world problem.
-    """
-    )
     return
 
 
@@ -733,7 +708,8 @@ def _(
     sym_final_diff,
     sym_ratio,
 ):
-    mo.md(f"""
+    mo.md(
+        f"""
     ## 📊 Quantitative Asymmetry Analysis
 
     | Metric | Symmetric Digits [0,1,8] | Asymmetric Digits [2,3,6,9] | Difference |
@@ -748,7 +724,8 @@ def _(
 
     The ChiralNet successfully differentiated between digit groups with different symmetry properties. 
     {"The asymmetric digits [2,3,6,9] showed greater pathway divergence, confirming our hypothesis!" if asym_final_diff > sym_final_diff else "Surprisingly, the 'symmetric' digits [0,1,8] showed greater pathway divergence!"}
-    """)
+    """
+    )
     return
 
 

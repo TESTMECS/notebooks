@@ -173,9 +173,10 @@ def _(F, SU2Gate, deque, mo, nn, random, torch):
         Maps CartPole observations to SU(2) spinor space.
         """
 
-        def __init__(self, obs_dim=4, n_actions=2, lr=0.001, gamma=0.99):
+        def __init__(self, obs_dim=4, n_actions=2, lr=0.0001, gamma=0.99):
             super().__init__()
             self.actions = nn.ModuleList([SU2Gate() for _ in range(n_actions)])
+            self.loss = None
 
             # Neural network to map observations to Q-values
             self.obs_encoder = nn.Sequential(
@@ -197,7 +198,7 @@ def _(F, SU2Gate, deque, mo, nn, random, torch):
             self.gamma = gamma
             self.n_actions = n_actions
             self.eps = 1.0
-            self.eps_decay = 0.9995  # Slower decay
+            self.eps_decay = 0.9999  # Slower decay
             self.eps_min = 0.01  # Lower minimum exploration for less noise
 
             # Experience replay
@@ -278,7 +279,7 @@ def _(F, SU2Gate, deque, mo, nn, random, torch):
             # Decay epsilon
             if self.eps > self.eps_min:
                 self.eps *= self.eps_decay
-
+            self.loss = loss.item()
             return loss.item()
 
         def update(self, obs, action, reward, next_obs, done):
@@ -292,7 +293,8 @@ def _(F, SU2Gate, deque, mo, nn, random, torch):
 @app.cell
 def _(QLearningAgent, gym, mo, torch):
     # Configuration 
-    EPOCHS = 300 
+    import matplotlib.pyplot as plt
+    EPOCHS = 500 
     MAX_STEPS = 500
 
     agent = QLearningAgent()
@@ -303,7 +305,8 @@ def _(QLearningAgent, gym, mo, torch):
     agent = QLearningAgent(
         obs_dim=env.observation_space.shape[0], n_actions=env.action_space.n
     )
-
+    rewards_history = []
+    losses_history = []
     for episode in mo.status.progress_bar(range(EPOCHS)):  # More episodes for learning
         obs, _ = env.reset()
         total_reward = 0
@@ -332,6 +335,48 @@ def _(QLearningAgent, gym, mo, torch):
             mo.output.append(
                 f"Episode {episode + 1}: Total Reward = {total_reward:.1f}, Epsilon = {agent.eps:.3f}"
             )
+            rewards_history.append(total_reward)
+            losses_history.append(agent.loss) # Assuming agent has a 'loss' attribute
+        if episode == EPOCHS - 1:
+            fig_rewards, ax_rewards = plt.subplots()
+            ax_rewards.plot(rewards_history)
+            ax_rewards.set_title("Total Reward per Episode")
+            ax_rewards.set_xlabel("Episode")
+            ax_rewards.set_ylabel("Total Reward")
+            ax_rewards.grid(True)
+            mo.output.append(fig_rewards)
+
+            fig_eps, ax_eps = plt.subplots()
+            if hasattr(agent, 'eps_history'):
+                ax_eps.plot(agent.eps_history)
+            else:
+                ax_eps.plot([agent.eps] * len(rewards_history)) # Placeholder if no history
+            ax_eps.set_title("Epsilon Decay")
+            ax_eps.set_xlabel("Episode")
+            ax_eps.set_ylabel("Epsilon")
+            ax_eps.grid(True)
+            mo.output.append(fig_eps)
+
+            fig_loss, ax_loss = plt.subplots()
+            ax_loss.plot(losses_history)
+            ax_loss.set_title("Average Loss per Episode")
+            ax_loss.set_xlabel("Episode")
+            ax_loss.set_ylabel("Loss")
+            ax_loss.grid(True)
+            mo.output.append(fig_loss)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+    # Conclusions
+    - **Richer State Representation:** Spinors, coming from quantum mechanics, have this inherent rotational symmetry (SU(2)). This could allow the agent to capture more nuanced information about the environment's state, especially if there are underlying symmetries in the CartPole problem that we're not immediately obvious. It's like giving the agent a more sophisticated way to "see" the world.
+    - **Action Space as Transformations:** The actions aren't just "left" or "right" anymore. They're learnable SU(2) gates that transform the spinor state. This means the agent is learning *how* how to manipulate its internal representation of the state, rather than just picking a direct output. It's like learning to apply a specific rotation to its understanding of the pole's angle and velocity.
+    - **Potential for Generalization:** If the agent can learn to generalize across different orientations or states using these SU(2) transformations, it might be more robust. It's like learning a fundamental principle of "balancing" rather than memorizing specific state-action pairs.
+    """
+    )
     return
 
 

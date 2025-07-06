@@ -10,7 +10,7 @@
 
 import marimo
 
-__generated_with = "0.13.15"
+__generated_with = "0.14.6"
 app = marimo.App(width="medium")
 
 
@@ -780,47 +780,6 @@ def _(ChiralNet, mo, nn, plt, torch):
 
 
     _()
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""
-    # What you are seeing
-
-    In the first step, you trained a ChiralNet to be an expert on one specific, invisible property of a 4D space: the "Twist" rule (x₀*x₃ - x₁*x₂ > 0.5). This trained model is now like a Geiger counter, but instead of radiation, it "beeps" when it enters a region of space that has this "Twist" property.
-
-    The probe went on a random journey generating a completely new piece of data—a long, random Brownian motion path. This path is like a probe wandering aimlessly through the 4D space.
-
-    The sensor's readings, at every single one of the 50,000 steps the probe took, you asked your trained model, "Are you beeping right now?" The plots are the visualization of these readings.
-
-    ## The 3D Plot: "Brownian Motion Path..."
-    This plot is a map of your probe's journey, colored by the sensor's readings.
-
-    The **Path Itself**: The tangled, wandering line is a perfect visual representation of Brownian motion. This is a sanity check that the path generation worked correctly.
-
-    The **Key Insight** is the colors: The path is not a uniform color. It moves through large, distinct regions of yellow and dark purple.
-
-    **Yellow Regions**: When the path is yellow, it means the particle was wandering through a part of the 4D space where the "Twist" condition is true. The model is confidently predicting a probability close to 1.0.
-
-    **Purple Regions**: When the path is purple, the particle has drifted into a different region where the "Twist" condition is false. The model is confidently predicting a probability close to 0.0.
-
-    **What this tells us**: It proves that the 4D space defined "Twist" rule is not random noise. It is a coherent landscape with vast, contiguous "continents" of positive and negative regions. Your model has successfully learned the map of this landscape.
-
-    ## 2. The 2D Plot: "Model's Prediction Probability..."
-
-    This plot shows the same information as the 3D plot, but from a temporal perspective. It's the raw data from the "Geiger counter" over time.
-
-    **"Digital" or "Square Wave" Shape:** The line spends almost all its time slammed against the top (1.0) or the bottom (0.0). It rarely hovers in the middle. This is the sign of a highly confident model. It isn't just guessing; it has learned the "Twist" rule so well that for any given point, it is almost certain whether it belongs to the region or not.
-
-    **Sharp Transitions:** The vertical lines show how quickly the particle can move from one region to another. For thousands of steps, the probability is flat at 0.0 (purple), and then in just a few steps, it shoots up to 1.0 (yellow) as the random walk carries it across an invisible boundary in the 4D space.
-
-    **Proof of Generalization:** The model was not trained on Brownian motion data. The fact that it could accurately apply its learned knowledge to this entirely new, structured data proves it has learned the underlying mathematical rule, not just memorized its training data.
-
-     This entire process serves as a blueprint for a new way of doing science. You can train a ChiralNet (or any model) to be an expert on a specific condition (e.g., "is this system stable?" or "does this protein contain an active site?") and then use that trained model as a dynamic sensor to analyze the evolution of a complex system over time.
-    """
-    )
     return
 
 

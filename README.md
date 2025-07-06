@@ -1,15 +1,10 @@
 # 📓 Notebooks
 
-A collection of research notebooks exploring machine learning, physics, mathematics, and fractal interpolation functions.
+A collection of research notebooks exploring machine learning ideas.
 
 ## 📁 Project Structure
 
 `pub/` -> notebooks that I feel like stand on their own. You can check out the HTML versions here: [link](https://TESTMECS.github.io/)
-
-`backlog/` -> notebooks that I'm still working on. Some of them are still jupyternbs so you can check out the outputs. Goal is to convert to Marimo Notebooks so that they can be run as simple scripts.
-
-`backend/` -> Simple FastAPI for viewing the public notebook HTML outputs. Those that use torch cannot be modified. TODO: Add tagging on index page for modifiable notebooks.
-
 
 ## 🚀 Quick Start
 
@@ -23,7 +18,6 @@ uv sync
 
 This installs only:
 - `rich` - For beautiful CLI output
-- `fastapi` + `uvicorn` - For the notebook server  
 - `watchdog` - For file watching
 
 ### Optional Dependencies

@@ -800,37 +800,6 @@ def _(mo):
 
     To test it harder, we gave it signals from a **chaotic system** called the **Henon map** — a simple math formula that produces wild, unpredictable motion. It's fast, efficient, and captures the essence of chaos without using differential equations.
 
-    ---
-
-    ### ⚙️ How ChiralNet Works
-
-    - It looks at each signal **forwards** and **backwards**
-    - Then it compares what it "feels" in each direction
-    - If it senses a strong difference, it learns that time has a direction
-
-    Think of it like showing a dog a video and asking, "Does this look natural or reversed?" 🐕
-
-    ---
-
-    ### 📈 What We Found
-
-    - ChiralNet learned to detect the **direction of time** with very high accuracy
-    - Even in chaotic, noisy signals like the Henon map
-    - The network used both the forward and reversed views to make its decisions
-    - When time flowed one way, its internal activations changed — a sign it *felt* the asymmetry
-
-    ---
-
-    ### 💡 Why This Matters
-
-    This isn't just a party trick.
-
-    - It shows that **time's arrow leaves a statistical trace**
-    - Even in systems that seem random or chaotic
-    - Neural networks can learn to **sense causality**, not just patterns
-
-    ---
-
     ### 📊 Summary
 
     | System      | Type       | What Happened                     |
@@ -838,12 +807,6 @@ def _(mo):
     | Drift Walk  | Simple     | Time direction was super obvious |
     | OU Process  | Reversible | Harder, but ChiralNet figured it out |
     | Henon Map   | Chaotic    | ChiralNet still nailed it        |
-
-    ---
-
-    This experiment is a small step toward machines that understand **not just what happened**, but **which way time is flowing**.  
-    Kind of like a compass for causality 🧭. Teaching machines to understand when reality makes sense.
-    ---
 
     # Future Tests
     - Lorenz attractor (continuous ODE)
