@@ -35,7 +35,9 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    mo.md(r"""> Chirality is a property of an object or system that cannot be superimposed on its mirror image — like your left and right hands. The term comes from the Greek word cheir, meaning hand.""")
+    mo.md(
+        r"""> Chirality is a property of an object or system that cannot be superimposed on its mirror image — like your left and right hands. The term comes from the Greek word cheir, meaning hand."""
+    )
     return
 
 
@@ -53,12 +55,12 @@ def _(mo):
 @app.cell
 def _():
     import logging
-    from rich.logging import RichHandler
+
+    import matplotlib.pyplot as plt
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
-    import matplotlib.pyplot as plt
-    from typing import List
+    from rich.logging import RichHandler
 
     return F, RichHandler, logging, nn, plt, torch
 
@@ -171,7 +173,9 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    mo.md(r"""Training the `ChiralityNet` model to predict points in the torus inside in 8D space.""")
+    mo.md(
+        r"""Training the `ChiralityNet` model to predict points in the torus inside in 8D space."""
+    )
     return
 
 
@@ -225,7 +229,9 @@ def _(ChiralNet, device, get_8d_data, mo, nn, torch):
 
         mo.output.append("\n--- Evaluation on Separate 8D Test Set ---")
         mo.output.append(f"Test Loss: {test_loss.item()}")
-        mo.output.append(f"Test Accuracy: {test_accuracy.item()} = {100 * test_accuracy.item()}%")
+        mo.output.append(
+            f"Test Accuracy: {test_accuracy.item()} = {100 * test_accuracy.item()}%"
+        )
         return x_test, y_test, test_preds, left_norms, right_norms, losses
 
     x_test, y_test, test_preds, left_norms, right_norms, losses = _()
@@ -643,8 +649,10 @@ def _(mo):
 def _(ChiralNet, mo, nn, plt, torch):
     def _():
         import numpy as np
+
         # --- Configuration ---
         DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
         def get_4d_chiral_data(n=4096):
             """Generates data for the 4D 'Twist' task where f(x) = f(-x)."""
             x = torch.randn(n, 4, device=DEVICE) * 2
@@ -777,7 +785,6 @@ def _(ChiralNet, mo, nn, plt, torch):
         mo.output.append(fig)
         mo.output.append(fig2)
         return
-
 
     _()
     return
