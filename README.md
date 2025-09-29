@@ -4,7 +4,7 @@ A collection of research notebooks exploring machine learning ideas.
 
 ## 📁 Project Structure
 
-`pub/` -> notebooks that I feel like stand on their own. You can check out the HTML versions here: [link](https://TESTMECS.github.io/)
+`pub/` -> notebooks that I feel like stand on their own.
 
 ## 🚀 Quick Start
 
