@@ -1,13 +1,6 @@
 # 📓 Notebooks
-
 A collection of research notebooks exploring machine learning ideas.
-
-## 📁 Project Structure
-
-`pub/` -> notebooks that I feel like stand on their own.
-
-## 🚀 Quick Start
-
+[Index Page](https://testmecs.github.io/notebooks/index.html)
 ### Minimal Installation (CLI + Server only)
 ```bash
 # Install just the essentials for CLI and server
