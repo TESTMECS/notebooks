@@ -1,6 +1,6 @@
 # 📓 Notebooks
 A collection of research notebooks exploring machine learning ideas.
-[Index Page](https://testmecs.github.io/notebooks/index.html)
+## [Index Page](https://testmecs.github.io/notebooks/index.html)
 ### Minimal Installation (CLI + Server only)
 ```bash
 # Install just the essentials for CLI and server
