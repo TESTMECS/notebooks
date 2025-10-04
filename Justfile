@@ -1,5 +1,5 @@
 serve:
-  python3 -m http.server 8000 -d "./public/pages"
+  python3 -m http.server 8000
 edit:
   uv run marimo edit --watch 
 sandbox:

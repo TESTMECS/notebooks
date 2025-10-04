@@ -1,0 +1,92 @@
+Metadata-Version: 2.4
+Name: notebooks
+Version: 0.2.0
+Summary: Notebook for testing programming implementations.
+Author-email: test me <andrew@ftg.sh>
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: altair>=5.5.0
+Requires-Dist: gymnasium>=1.2.0
+Requires-Dist: multidict>=6.5.0
+Requires-Dist: rich>=14.0.0
+Requires-Dist: watchdog>=6.0.0
+Provides-Extra: ml
+Requires-Dist: torch>=2.7.1; extra == "ml"
+Requires-Dist: torchvision>=0.22.1; extra == "ml"
+Requires-Dist: scikit-learn>=1.7.0; extra == "ml"
+Requires-Dist: matplotlib>=3.10.3; extra == "ml"
+Requires-Dist: datasets>=3.6.0; extra == "ml"
+Requires-Dist: nltk>=3.9.1; extra == "ml"
+Requires-Dist: transformers>=4.52.4; extra == "ml"
+Provides-Extra: notebooks
+Requires-Dist: marimo>=0.13.15; extra == "notebooks"
+Provides-Extra: gui
+Requires-Dist: pyqt5>=5.15.11; extra == "gui"
+Provides-Extra: ai
+Requires-Dist: google-generativeai>=0.8.5; extra == "ai"
+Requires-Dist: google-genai>=1.23.0; extra == "ai"
+Provides-Extra: full
+Requires-Dist: notebooks[ai,gui,ml,notebooks]; extra == "full"
+
+# 📓 Notebooks
+A collection of research notebooks exploring machine learning ideas.
+## [Index Page](https://testmecs.github.io/notebooks/index.html)
+### Minimal Installation (CLI + Server only)
+```bash
+# Install just the essentials for CLI and server
+pip install -e .
+# Or with uv (recommended)
+uv sync 
+```
+
+This installs only:
+- `rich` - For beautiful CLI output
+- `watchdog` - For file watching
+
+### Optional Dependencies
+
+#### For Machine Learning Notebooks
+```bash
+# Install ML dependencies (torch, scikit-learn, etc.)
+uv sync --extra ml 
+
+or 
+
+pip install -e ".[ml]"
+```
+
+#### For Marimo Notebooks
+```bash
+# Install marimo for interactive notebooks
+uv sync --extra notebooks
+
+or
+
+pip install -e ".[notebooks]"
+```
+
+#### For GUI Components
+```bash
+# Install PyQt5 for GUI notebooks
+uv sync --extra gui
+
+or 
+
+pip install -e ".[gui]"
+```
+
+#### For AI/LLM Features
+```bash
+# Install Google Generative AI
+uv sync --extra ai
+
+or
+
+pip install -e ".[ai]"
+```
+
+#### Everything
+```bash
+# Install all optional dependencies
+pip install -e ".[full]"
+```
